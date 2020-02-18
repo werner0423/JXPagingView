@@ -263,6 +263,7 @@ extension JXPagingView: UITableViewDataSource, UITableViewDelegate {
     }
 
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        scrollView.delegate = nil
         if pinSectionHeaderVerticalOffset != 0 {
             if scrollView.contentOffset.y < CGFloat(pinSectionHeaderVerticalOffset) {
                 //因为设置了contentInset.top，所以顶部会有对应高度的空白区间，所以需要设置负数抵消掉
@@ -276,6 +277,7 @@ extension JXPagingView: UITableViewDataSource, UITableViewDelegate {
         }
         preferredProcessMainTableViewDidScroll(scrollView)
         delegate?.mainTableViewDidScroll?(scrollView)
+        scrollView.delegate = self
     }
 
     public func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
