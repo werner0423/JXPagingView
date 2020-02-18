@@ -54,7 +54,7 @@ open class JXPagingView: UIView {
     public var currentScrollingListView: UIScrollView?
     public var currentList: JXPagingViewListViewDelegate?
     private var currentIndex: Int = 0
-    private weak var delegate: JXPagingViewDelegate?
+    private unowned var delegate: JXPagingViewDelegate
     private var tableHeaderContainerView: UIView!
     private let cellIdentifier = "cell"
     private let listContainerType: JXPagingListContainerType
@@ -105,7 +105,6 @@ open class JXPagingView: UIView {
     }
 
     open func resizeTableHeaderViewHeight(animatable: Bool = false, duration: TimeInterval = 0.25, curve: UIView.AnimationCurve = .linear) {
-        guard let delegate = delegate else { return }
         if animatable {
             var options: UIView.AnimationOptions = .curveLinear
             switch curve {
@@ -172,7 +171,6 @@ open class JXPagingView: UIView {
     //MARK: - Private
 
     func refreshTableHeaderView() {
-        guard let delegate = delegate else { return }
         let tableHeaderView = delegate.tableHeaderView(in: self)
         let containerView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat(delegate.tableHeaderViewHeight(in: self))))
         containerView.addSubview(tableHeaderView)
@@ -193,7 +191,6 @@ open class JXPagingView: UIView {
     }
 
     func mainTableViewMaxContentOffsetY() -> CGFloat {
-        guard let delegate = delegate else { return 0 }
         return CGFloat(delegate.tableHeaderViewHeight(in: self)) - CGFloat(pinSectionHeaderVerticalOffset)
     }
 
@@ -213,7 +210,6 @@ open class JXPagingView: UIView {
     }
 
     func pinSectionHeaderHeight() -> CGFloat {
-        guard let delegate = delegate else { return 0 }
         return CGFloat(delegate.heightForPinSectionHeader(in: self))
     }
 
@@ -247,7 +243,6 @@ extension JXPagingView: UITableViewDataSource, UITableViewDelegate {
     }
 
     public func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
-        guard let delegate = delegate else { return nil }
         return delegate.viewForPinSectionHeader(in: self)
     }
 
@@ -266,9 +261,15 @@ extension JXPagingView: UITableViewDataSource, UITableViewDelegate {
         scrollView.delegate = nil
         if pinSectionHeaderVerticalOffset != 0 {
             if scrollView.contentOffset.y < CGFloat(pinSectionHeaderVerticalOffset) {
-                //因为设置了contentInset.top，所以顶部会有对应高度的空白区间，所以需要设置负数抵消掉
-                if scrollView.contentOffset.y >= 0 {
+                if scrollView.contentOffset.y >= mainTableViewMaxContentOffsetY() {
+                    //处理mainTableViewMaxContentOffsetY比pinSectionHeaderVerticalOffset还小的情况
+                    //固定的位置就是contentInset.top
+                    adjustMainScrollViewToTargetContentInsetIfNeeded(inset: UIEdgeInsets(top: CGFloat(pinSectionHeaderVerticalOffset), left: 0, bottom: 0, right: 0))
+                }else if scrollView.contentOffset.y >= 0 {
+                    //因为设置了contentInset.top，所以顶部会有对应高度的空白区间，所以需要设置负数抵消掉
                     adjustMainScrollViewToTargetContentInsetIfNeeded(inset: UIEdgeInsets(top: -scrollView.contentOffset.y, left: 0, bottom: 0, right: 0))
+                }else if scrollView.contentOffset.y < 0 {
+                    adjustMainScrollViewToTargetContentInsetIfNeeded(inset: UIEdgeInsets.zero)
                 }
             }else if scrollView.contentOffset.y > CGFloat(pinSectionHeaderVerticalOffset) {
                 //固定的位置就是contentInset.top
@@ -276,7 +277,7 @@ extension JXPagingView: UITableViewDataSource, UITableViewDelegate {
             }
         }
         preferredProcessMainTableViewDidScroll(scrollView)
-        delegate?.mainTableViewDidScroll?(scrollView)
+        delegate.mainTableViewDidScroll?(scrollView)
         scrollView.delegate = self
     }
 
@@ -309,12 +310,10 @@ extension JXPagingView: UITableViewDataSource, UITableViewDelegate {
 
 extension JXPagingView: JXPagingListContainerViewDataSource {
     public func numberOfLists(in listContainerView: JXPagingListContainerView) -> Int {
-        guard let delegate = delegate else { return 0 }
         return delegate.numberOfLists(in: self)
     }
 
     public func listContainerView(_ listContainerView: JXPagingListContainerView, initListAt index: Int) -> JXPagingViewListViewDelegate {
-        guard let delegate = delegate else { fatalError("JXPaingView.delegate must not be nil") }
         var list = validListDict[index]
         if list == nil {
             list = delegate.pagingView(self, initListAtIndex: index)
