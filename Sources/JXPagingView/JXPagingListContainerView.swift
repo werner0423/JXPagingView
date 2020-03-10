@@ -32,7 +32,13 @@ public protocol JXPagingViewListViewDelegate {
     ///
     /// - Parameter callback: `scrollViewDidScroll`回调时调用的callback
     func listViewDidScrollCallback(callback: @escaping (UIScrollView)->())
-
+    
+    
+    @objc optional func listViewBeginDragingCallback(callback: @escaping (UIScrollView) -> ())
+    
+    @objc optional func listViewDidEndDragingCallback(callback: @escaping (UIScrollView, Bool) -> ())
+    
+    @objc optional func listViewDidEndDeceleratingCallback(callback: @escaping (UIScrollView) -> ())
     /// 将要重置listScrollView的contentOffset
     @objc optional func listScrollViewWillResetContentOffset()
     /// 可选实现，列表将要显示的时候调用

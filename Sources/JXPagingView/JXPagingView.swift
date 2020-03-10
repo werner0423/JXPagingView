@@ -29,6 +29,13 @@ import UIKit
     func pagingView(_ pagingView: JXPagingView, initListAtIndex index: Int) -> JXPagingViewListViewDelegate
     /// mainTableView的滚动回调，用于实现头图跟随缩放
     @objc optional func mainTableViewDidScroll(_ scrollView: UIScrollView)
+    
+    @objc optional func mainTableViewBeginDraging(_ scrollView: UIScrollView)
+    
+    @objc optional func mainTableDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool)
+    
+    @objc optional func mainTableViewDidEndDecelerating(_ scrollView: UIScrollView)
+
 }
 
 open class JXPagingView: UIView {
@@ -217,6 +224,18 @@ open class JXPagingView: UIView {
     func listViewDidScroll(scrollView: UIScrollView) {
         preferredProcessListViewDidScroll(scrollView: scrollView)
     }
+    
+    func listViewBeginDraging(_ scrollView: UIScrollView) {
+        
+    }
+    
+    func listViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        
+    }
+    
+    func listViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        
+    }
 }
 
 //MARK: - UITableViewDataSource, UITableViewDelegate
@@ -284,15 +303,18 @@ extension JXPagingView: UITableViewDataSource, UITableViewDelegate {
     public func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         //用户正在上下滚动的时候，就不允许左右滚动
         listContainerView.scrollView.isScrollEnabled = false
+        delegate.mainTableViewBeginDraging?(scrollView)
     }
 
     public func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        delegate.mainTableDidEndDragging?(scrollView, willDecelerate: decelerate)
         if isListHorizontalScrollEnabled && !decelerate {
             listContainerView.scrollView.isScrollEnabled = true
         }
     }
 
     public func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        delegate.mainTableViewDidEndDecelerating?(scrollView)
         if isListHorizontalScrollEnabled {
             listContainerView.scrollView.isScrollEnabled = true
         }
@@ -321,6 +343,18 @@ extension JXPagingView: JXPagingListContainerViewDataSource {
                 self?.currentList = list
                 self?.listViewDidScroll(scrollView: scrollView)
             }
+            
+            list?.listViewBeginDragingCallback?(callback: {[weak self] (scrollView) in
+                self?.listViewBeginDraging(scrollView)
+            })
+            
+            list?.listViewDidEndDragingCallback?(callback: { [weak self] (scrollView, decelerate) in
+                self?.listViewDidEndDragging(scrollView, willDecelerate: decelerate)
+            })
+            
+            list?.listViewDidEndDeceleratingCallback?(callback: {[weak self] (scrollView) in
+                self?.listViewDidEndDecelerating(scrollView)
+            })
             validListDict[index] = list!
         }
         return list!
